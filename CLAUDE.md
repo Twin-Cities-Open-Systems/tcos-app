@@ -46,8 +46,18 @@ are listed once, in `shell.manifest`:
 | file | what it is |
 |---|---|
 | `css/shell.css` | tokens, light/dark/auto themes, text sizes, cards, controls, chips, collapse/arrange/table/freshness styles, print. Derived from `fleet-ops/view/assets/view.css` minus the operator-only parts |
-| `js/shell.js` | the text-size and theme toggles (storage-guarded) |
+| `js/shell.js` | the header (hamburger menu under 40rem, text-size and theme toggles, storage-guarded) and three reusable pieces, below |
 | `js/collapse.js` `arrange.js` `table.js` `links.js` `freshness.js` | copies of `human-execution-engine/library/js`, byte for byte (`tests/test_shell.py` fails when they drift, where an HEE checkout exists) |
+
+Three components live in the shell because any `*.tcos.app` app can use them; put a new
+one here when a second app could, not in the app. Each is CSS in `shell.css` plus, where it
+needs behavior, a small API in `shell.js` (no new files, so no payload list in any repo grows):
+
+| component | markup and API |
+|---|---|
+| flip card | `.tc-flip[data-flipped]` > `.tc-flip-in` > `.tc-face.tc-front` + `.tc-face.tc-back`; `TC.flip.set/all`; `[data-tc-flip]` buttons and `[data-tc-flipall="back\|front"][data-target]` work with no page script; `.tc-fit` sizes a card to its visible face |
+| way back | `nav.tc-jump` with `[data-tc-to=group\|panel\|top]` buttons; `TC.wayback.init(nav, {scope, heading, groups, strip})` |
+| dock | `.tc-dock` (+ `.tc-dock-n`): a bar that rides the bottom edge while its section is on screen; the pill lifts above it |
 
 `hovercard.js` is not in the shell: it calls `api.github.com`, and a public app is
 same-origin only. Edit these here, never in a child.
