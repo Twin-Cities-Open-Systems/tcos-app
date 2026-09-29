@@ -76,9 +76,9 @@ jobs:
           set -eu
           # The committed output only. index.html is generated and committed,
           # and deploy.sh promote ships these same files with no rebuild.
-          tar -czf "$RUNNER_TEMP/tcos-app-www.tar.gz" -C . index.html robots.txt css
+          tar -czf "$RUNNER_TEMP/tcos-app-www.tar.gz" -C . index.html robots.txt og.jpg css
           mv "$RUNNER_TEMP/tcos-app-www.tar.gz" .
-          for f in index.html robots.txt css/site.css; do
+          for f in index.html robots.txt og.jpg css/site.css; do
             tar -tzf tcos-app-www.tar.gz | grep -qx "$f" \
               || { echo "payload is missing $f -- refusing to publish"; exit 1; }
           done

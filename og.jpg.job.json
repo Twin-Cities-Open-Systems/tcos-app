@@ -1,0 +1,17 @@
+{
+ "card": true,
+ "eyebrow": "tcos.app",
+ "for": "https://tcos.app/",
+ "host": "tcos.app",
+ "owner": "Twin Cities Open Systems",
+ "page": "index",
+ "palette": [
+  "#3fd4c8",
+  "#ff6161"
+ ],
+ "seed": "tcos-app",
+ "subtitle": "(Twin Cities Open Systems)",
+ "tagline": "small, open apps",
+ "text": "TC",
+ "title": "tcos.app"
+}
