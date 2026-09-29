@@ -17,7 +17,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cmd="${1:-}"
 [ "$cmd" = lab ] || [ "$cmd" = promote ] || { echo "usage: $0 lab|promote" >&2; exit 1; }
 PAGES=(index.html)
-ASSET_DIRS=(css)
+ASSET_DIRS=(css js)
 ASSET_FILES=(robots.txt og.jpg)
 HOST=tcos.app
 

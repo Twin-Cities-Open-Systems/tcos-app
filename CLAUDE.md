@@ -29,3 +29,29 @@ If the org rules are not in `/context`, the hook is not installed.
 `tcos-app` is generated: `index.html` comes from `apps.yaml` via
 `python3 generate-index.py`. Edit the registry, regenerate, commit both. Release
 only through `hee release -lab | -cut | -promote`.
+
+## The shared shell, and how a child app inherits it
+
+`tcos-app` owns the look and the behavior every `*.tcos.app` app shares. The files
+are listed once, in `shell.manifest`:
+
+| file | what it is |
+|---|---|
+| `css/shell.css` | tokens, light/dark/auto themes, text sizes, cards, controls, chips, collapse/arrange/table/freshness styles, print. Derived from `fleet-ops/view/assets/view.css` minus the operator-only parts |
+| `js/shell.js` | the text-size and theme toggles (storage-guarded) |
+| `js/collapse.js` `arrange.js` `table.js` `links.js` `freshness.js` | copies of `human-execution-engine/library/js`, byte for byte (`tests/test_shell.py` fails when they drift, where an HEE checkout exists) |
+
+`hovercard.js` is not in the shell: it calls `api.github.com`, and a public app is
+same-origin only. Edit these here, never in a child.
+
+A child inherits by **copying** the files at the same relative paths and serving
+them from its own origin (no cross-host `<script src>`; the lab has no egress
+guarantee). The child's `sync-shell.sh` copies the manifest from a tcos-app
+checkout and `--check` fails when any copy differs, which is what the child's CI
+runs against tcos-app `main`. Merge tcos-app first, then sync the child.
+
+Markup contract for a page (see `index.html`): the head bootstrap that sets
+`data-fs`/`data-theme` before paint, the `.top` header with the font-size and
+theme buttons, and cards as `<section class="card" data-tc-collapse="ID">` with a
+`<h2 data-tc-collapse-toggle>` and a `<div class="body" data-tc-collapse-body>`.
+Cards built by script call `TC.collapse.init(container)` after inserting them.
