@@ -58,7 +58,7 @@ def themes():
     system = tokens(re.search(r':root:not\(\[data-theme="light"\]\)\{(.*?)\n  \}', CSS, re.DOTALL).group(1))
     out = {"light": light, "dark": dark}
     for name, kind in SKINS.items():
-        m = re.search(r':root\[data-skin="%s"\]\{(.*?)\n\}' % name, CSS, re.DOTALL)
+        m = re.search(rf':root\[data-skin="{name}"\]\{{(.*?)\n\}}', CSS, re.DOTALL)
         assert m, f"skin {name} missing from shell.css"
         out[name] = {**out[kind], **tokens(m.group(1))}
     return out, system
