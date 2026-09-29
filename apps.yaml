@@ -3,7 +3,12 @@
 #
 # status: planned | live
 #   planned  listed as "coming soon", no link
-#   live     linked; `version` is the latest prod/<repo>/<version> tag
+#   live     linked, with the version of its newest prod/<repo>/vX.Y.Z tag
+#
+# version: latest (or leave it out) -- generate-index.py reads the app repo's
+#   prod tags and shows the highest one, so a release never needs a hand edit
+#   here. Regenerating is what picks it up (./deploy.sh lab regenerates). A
+#   literal vX.Y.Z pins the card to that version instead.
 apps:
   - name: ham
     title: Just Another Ham Study
@@ -11,4 +16,4 @@ apps:
     repo: ham-tcos-app
     summary: Study guide for the US amateur radio exams, from the public-domain NCVEC question pools.
     status: live
-    version: v1.1.0
+    version: latest

@@ -30,6 +30,14 @@ If the org rules are not in `/context`, the hook is not installed.
 `python3 generate-index.py`. Edit the registry, regenerate, commit both. Release
 only through `hee release -lab | -cut | -promote`.
 
+A live app's version is never hand-typed: `version: latest` resolves to the highest
+`prod/<repo>/vX.Y.Z` tag via `git ls-remote --tags` when the index is regenerated
+(`./deploy.sh lab` does that). `--check` reads the versions already in the committed
+page, so CI is offline; a newer tag only warns unless `TCOS_APP_STRICT_VERSIONS=1`.
+`TCOS_APP_TAG_SOURCE` redirects the tag source, which is how `tests/test_versions.py`
+runs against local bare repos. A regenerate that cannot read a tag refuses rather
+than guessing.
+
 ## The shared shell, and how a child app inherits it
 
 `tcos-app` owns the look and the behavior every `*.tcos.app` app shares. The files

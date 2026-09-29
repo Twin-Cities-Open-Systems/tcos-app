@@ -5,11 +5,28 @@ The output is deterministic (no timestamps, no commit hash), so a rebuild on
 any commit reproduces the committed page byte for byte -- what `hee release
 -promote` relies on.
 
+A live app's version is never typed here: `version: latest` (or no version)
+resolves to the highest vX.Y.Z among the app repo's `prod/<repo>/v*` tags,
+read with `git ls-remote --tags` (public repos, no token). Regenerating -- which
+`./deploy.sh lab` does on every run -- is what picks up a child's new release.
+
 Usage: python3 generate-index.py [--check]
-  --check   exit 2 if index.html is not what apps.yaml generates
+  --check   exit 2 if index.html is not what apps.yaml generates. Versions are
+            taken from the committed page, so the check is deterministic and
+            offline and a child's release cannot turn CI red; it only prints a
+            WARNING when a newer prod tag exists. TCOS_APP_STRICT_VERSIONS=1
+            makes that warning fatal (and an unreachable remote fatal too).
+
+Environment:
+  TCOS_APP_TAG_SOURCE   where app repos are read from; each is
+                        <source>/<repo>  (default: the org on github.com; a
+                        directory of bare repos works, which is what tests use)
 """
 import html
+import os
 import pathlib
+import re
+import subprocess
 import sys
 
 import yaml
@@ -17,6 +34,8 @@ import yaml
 HERE = pathlib.Path(__file__).resolve().parent
 STATUSES = {"planned", "live"}
 REQUIRED = ("name", "title", "host", "repo", "summary", "status")
+TAG_SOURCE = "https://github.com/Twin-Cities-Open-Systems"
+SEMVER = re.compile(r"v(\d+)\.(\d+)\.(\d+)")
 
 
 def load(path):
@@ -28,14 +47,62 @@ def load(path):
             sys.exit(f"CRITICAL apps.yaml: {a.get('name', '?')} lacks {', '.join(missing)}")
         if a["status"] not in STATUSES:
             sys.exit(f"CRITICAL apps.yaml: {a['name']} status {a['status']!r} is not one of {sorted(STATUSES)}")
-        if a["status"] == "live" and not a.get("version"):
-            sys.exit(f"CRITICAL apps.yaml: {a['name']} is live but has no version")
         if not a["host"].endswith(".tcos.app"):
             sys.exit(f"CRITICAL apps.yaml: {a['name']} host {a['host']!r} is not under tcos.app")
         if a["name"] in seen:
             sys.exit(f"CRITICAL apps.yaml: duplicate app {a['name']}")
         seen.add(a["name"])
     return apps
+
+
+def is_latest(a):
+    return a["status"] == "live" and a.get("version") in (None, "", "latest")
+
+
+def latest_prod_version(repo):
+    """Highest vX.Y.Z among prod/<repo>/v* tags on the repo's remote."""
+    source = os.environ.get("TCOS_APP_TAG_SOURCE", TAG_SOURCE).rstrip("/")
+    try:
+        r = subprocess.run(["git", "ls-remote", "--tags", f"{source}/{repo}"],
+                           capture_output=True, text=True, timeout=60, check=False)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise RuntimeError(f"cannot run git ls-remote for {repo}: {exc}")
+    if r.returncode != 0:
+        raise RuntimeError(f"git ls-remote {source}/{repo} failed: {r.stderr.strip() or r.returncode}")
+    prefix = f"refs/tags/prod/{repo}/"
+    found = []
+    for line in r.stdout.splitlines():
+        ref = line.split("\t")[-1]
+        if not ref.startswith(prefix) or ref.endswith("^{}"):
+            continue
+        m = SEMVER.fullmatch(ref[len(prefix):])
+        if m:
+            found.append((tuple(int(x) for x in m.groups()), ref[len(prefix):]))
+    if not found:
+        raise RuntimeError(f"{repo} has no {prefix}vX.Y.Z tag on {source}")
+    return max(found)[1]
+
+
+def committed_versions(text, apps):
+    """Each app's version as shown on the committed page (None when absent)."""
+    out = {}
+    for a in apps:
+        m = re.search(r'data-tc-collapse="app-' + re.escape(a["name"]) + r'"[\s\S]*?<span class="count">([^<]*)</span>', text)
+        out[a["name"]] = html.unescape(m.group(1)) if m else None
+    return out
+
+
+def resolve(apps, versions):
+    """Copy of apps with every live app's version filled in; versions maps name -> version."""
+    out = []
+    for a in apps:
+        a = dict(a)
+        if a["status"] == "live":
+            a["version"] = versions.get(a["name"]) if is_latest(a) else a["version"]
+            if not a["version"]:
+                sys.exit(f"CRITICAL apps.yaml: {a['name']} is live and its version could not be determined")
+        out.append(a)
+    return out
 
 
 def card(a):
@@ -132,13 +199,35 @@ var t=localStorage.getItem("tc-theme");if(t&&t!=="auto")d.setAttribute("data-the
 
 def main(argv):
     out = HERE / "index.html"
-    text = render(load(HERE / "apps.yaml"))
+    apps = load(HERE / "apps.yaml")
+    strict = os.environ.get("TCOS_APP_STRICT_VERSIONS") == "1"
+    latest = [a for a in apps if is_latest(a)]
     if "--check" in argv:
-        if not out.exists() or out.read_text(encoding="utf-8") != text:
+        committed = out.read_text(encoding="utf-8") if out.exists() else ""
+        shown = committed_versions(committed, apps)
+        if not out.exists() or committed != render(resolve(apps, shown)):
             print("CRITICAL index.html is not what apps.yaml generates -- run python3 generate-index.py", file=sys.stderr)
             return 2
-        return 0
-    out.write_text(text, encoding="utf-8")
+        rc = 0
+        for a in latest:
+            try:
+                want = latest_prod_version(a["repo"])
+            except RuntimeError as exc:
+                print(f"{'CRITICAL' if strict else 'WARNING'} cannot check {a['name']}'s version: {exc}", file=sys.stderr)
+                rc = 2 if strict else rc
+                continue
+            if shown[a["name"]] != want:
+                print(f"{'CRITICAL' if strict else 'WARNING'} index.html shows {a['name']} {shown[a['name']]}, newest prod tag is {want} -- run python3 generate-index.py (./deploy.sh lab does)", file=sys.stderr)
+                rc = 2 if strict else rc
+        return rc
+    versions = {}
+    for a in latest:
+        try:
+            versions[a["name"]] = latest_prod_version(a["repo"])
+        except RuntimeError as exc:
+            print(f"CRITICAL apps.yaml: {a['name']} version 'latest' could not be resolved: {exc}", file=sys.stderr)
+            return 2
+    out.write_text(render(resolve(apps, versions)), encoding="utf-8")
     return 0
 
 
