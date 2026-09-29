@@ -13,6 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 CSS = (ROOT / "css" / "shell.css").read_text()
 BODY, UI, EDGE = 7.0, 4.5, 3.0
+SKINS = {"paper": "light", "contrast": "light", "midnight": "dark", "graphite": "dark"}  # keep in step with KIND in js/shell.js
 
 # (foreground, background, target, where it is used)
 PAIRS = [
@@ -55,7 +56,12 @@ def themes():
     dark = dict(light)
     dark.update(tokens(re.search(r':root\[data-theme="dark"\]\{(.*?)\n\}', CSS, re.DOTALL).group(1)))
     system = tokens(re.search(r':root:not\(\[data-theme="light"\]\)\{(.*?)\n  \}', CSS, re.DOTALL).group(1))
-    return {"light": light, "dark": dark}, system
+    out = {"light": light, "dark": dark}
+    for name, kind in SKINS.items():
+        m = re.search(r':root\[data-skin="%s"\]\{(.*?)\n\}' % name, CSS, re.DOTALL)
+        assert m, f"skin {name} missing from shell.css"
+        out[name] = {**out[kind], **tokens(m.group(1))}
+    return out, system
 
 
 def lum(hexcolor):
@@ -73,12 +79,17 @@ def ratio(a, b):
 
 
 class Contrast(unittest.TestCase):
-    def test_every_pair_meets_its_target_in_both_themes(self):
+    def test_every_pair_meets_its_target_in_every_theme(self):
         by_theme, _ = themes()
         for name, t in by_theme.items():
             for fg, bg, target, use in PAIRS:
                 r = ratio(t[fg], t[bg])
                 self.assertGreaterEqual(r, target, f"{name}: {fg} on {bg} ({use}) is {r:.2f}, needs {target}")
+
+    def test_js_kind_map_matches_skins(self):
+        js = (ROOT / "js" / "shell.js").read_text()
+        kind = dict(re.findall(r'(\w+): "(light|dark)"', re.search(r"var KIND = \{(.*?)\};", js).group(1)))
+        self.assertEqual(kind, SKINS)
 
     def test_system_dark_matches_explicit_dark(self):
         by_theme, system = themes()
