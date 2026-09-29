@@ -16,7 +16,6 @@ spec:
   requires:
     commands: [git, python3]
     python: [yaml]
-    lab: { ssh: [pve] }
     cut: { commands: [gh] }
     promote:
       versions: { node: ">=20" }

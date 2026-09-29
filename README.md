@@ -19,7 +19,7 @@ Serve `.` with any static file server to preview.
 Lab first, then the release PR, then promote. Each step is one `hee release` call
 driven by `release.card.v1.yaml`:
 
-    hee release -lab       # build and publish to the lab surface for review
+    hee release -lab       # wait until the lab serves main (lab-pull installs it), for review
     hee release -cut -yes  # release commit and PR; merging it is the sign-off
     hee release -promote -yes  # deploy tcos.app from the release commit, signed tag
 
