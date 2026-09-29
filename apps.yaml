@@ -1,0 +1,13 @@
+# apps.yaml -- the registry: the source of truth for which apps live on tcos.app.
+# index.html is generated from this file (python3 generate-index.py).
+#
+# status: planned | live
+#   planned  listed as "coming soon", no link
+#   live     linked; `version` is the latest prod/<repo>/<version> tag
+apps:
+  - name: ham
+    title: Ham Study
+    host: ham.tcos.app
+    repo: ham-tcos-app
+    summary: Study guide for the US amateur radio exams, from the public-domain NCVEC question pools.
+    status: planned

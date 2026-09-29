@@ -1,0 +1,54 @@
+# Org CI baseline -- PROMPTING_RULES rule 16.
+#
+# Two layers: hee-check for what only this org knows, standard tools for
+# what is standard. hee-check needs no toolchain and no language runtime,
+# so it works in every repo including docs-only ones.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  hee-check:
+    name: hee-check (org tooling)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tcos-app
+        uses: actions/checkout@v4
+        with:
+          path: tcos-app
+
+      # Check out the tool's home repo rather than vendoring a copy.
+      # Vendoring is what produced three divergent security_scanner.py
+      # files across the org -- human-execution-engine#468.
+      - name: Checkout human-execution-engine (hee-check lives there)
+        uses: actions/checkout@v4
+        with:
+          repository: Twin-Cities-Open-Systems/human-execution-engine
+          # Pinned. `stable` advances only after this repo is measured green against
+          # the candidate commit; unpinned, a hee tightening turned org repos red with
+          # no commit here -- human-execution-engine#633.
+          ref: stable
+          path: human-execution-engine
+
+      # BLOCKING, and verified green before this workflow was added:
+      # hee-check boundary and refs both exit 0 on this repo today.
+      # It catches broken file references, hardcoded /home/<user>/ paths,
+      # and derived state committed to git.
+      - name: hee-check all
+        run: human-execution-engine/tooling/bin/hee-check all tcos-app
+
+  index:
+    name: index is generated from apps.yaml
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --quiet pyyaml ruff
+      - run: python3 generate-index.py --check
+      - run: ruff check .
