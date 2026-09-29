@@ -10,4 +10,5 @@ apps:
     host: ham.tcos.app
     repo: ham-tcos-app
     summary: Study guide for the US amateur radio exams, from the public-domain NCVEC question pools.
-    status: planned
+    status: live
+    version: v1.1.0
