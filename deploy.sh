@@ -3,13 +3,14 @@
 # one (HEE_POLICY 17). Modeled on tcos-www's deploy.sh; drive it with
 # `hee release -lab | -cut | -promote`, not by hand.
 #
-#   ./deploy.sh lab       regenerate index.html from apps.yaml, gate, push to
-#                         app.lab.tcos.us via .github's Makefile (lab-tcos-app)
+#   ./deploy.sh lab       regenerate index.html from apps.yaml, gate, then wait
+#                         until app.lab.tcos.us serves it. Pushes nothing: CI
+#                         publishes each main build and lab-pull installs it.
 #   ./deploy.sh promote   gate the COMMITTED page (no rebuild), deploy the
 #                         tcos-app Worker with the session signature on the
 #                         version, verify, record a GPG-signed prod/tcos-app/<v>
 #
-# Requires: hee on PATH, ~/git/.github (lab), and for promote the sealed token
+# Requires: hee on PATH, and for promote the sealed token
 # via `hee cred -pass cloudflare-tcos-www -dir <dir> -exec` (see the card).
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -45,9 +46,26 @@ fi
 echo "  index matches apps.yaml; hee check all: OK; no conflict markers"
 
 if [ "$cmd" = lab ]; then
-  make -C "$HOME/git/.github" lab-tcos-app TCOS_APP="$HERE" >/dev/null
-  printf '  app.lab.tcos.us/  %s\n' "$(curl -s -o /dev/null -w '%{http_code}' https://app.lab.tcos.us/)"
-  echo "=== lab updated -- review https://app.lab.tcos.us, then hee release -cut ==="
+  # Nothing is pushed from here. CI publishes a payload for every main build
+  # and lab-pull on pve installs it, so the lab can only show what is merged.
+  git fetch -q origin main
+  if ! git diff --quiet origin/main -- "${PAGES[@]}" "${ASSET_DIRS[@]}" "${ASSET_FILES[@]}"; then
+    echo "❌ CRITICAL lab: the shipped files differ from origin/main -- the lab serves main via lab-pull; merge first, then run this to confirm" >&2; exit 2
+  fi
+  want="$(sha256sum index.html | cut -d' ' -f1)"
+  tries="${LAB_WAIT_TRIES:-14}"
+  got=""
+  echo "=== lab: waiting for lab-pull to serve index.html $want (up to $((tries * 30))s) ==="
+  for i in $(seq 1 "$tries"); do
+    got="$(curl -s https://app.lab.tcos.us/ | sha256sum | cut -d' ' -f1)"
+    [ "$got" = "$want" ] && break
+    [ "$i" -lt "$tries" ] && sleep 30
+  done
+  if [ "$got" != "$want" ]; then
+    echo "❌ CRITICAL lab: https://app.lab.tcos.us/ is not serving this commit's index.html -- check the publish job on main, then that lab-pull has run on pve" >&2; exit 2
+  fi
+  printf '  app.lab.tcos.us/  %s  (matches origin/main)\n' "$(curl -s -o /dev/null -w '%{http_code}' https://app.lab.tcos.us/)"
+  echo "=== lab is current -- review https://app.lab.tcos.us, then hee release -cut ==="
   exit 0
 fi
 

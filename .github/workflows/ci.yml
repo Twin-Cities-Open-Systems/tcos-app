@@ -52,3 +52,65 @@ jobs:
       - run: pip install --quiet pyyaml ruff
       - run: python3 generate-index.py --check
       - run: ruff check .
+
+  # Publish what the lab installs, in the shape lab-pull already reads from
+  # thesis-engine and fleet-ops itself: one immutable lab-<short sha> release
+  # per build, carrying the payload plus a COMMIT asset. lab-pull on pve
+  # installs it into the share every five minutes. A workstation `make` that
+  # writes into ct107 stopped working when lab-pull took ownership of /www.
+  publish:
+    name: publish payload (for lab-pull)
+    # Never from a pull request: what the lab installs must be on main.
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs: [hee-check, index]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write        # only to attach the payload to this build's release
+    env:
+      KEEP_RELEASES: '5'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the payload
+        run: |
+          set -eu
+          # The committed output only. index.html is generated and committed,
+          # and deploy.sh promote ships these same files with no rebuild.
+          tar -czf "$RUNNER_TEMP/tcos-app-www.tar.gz" -C . index.html robots.txt css
+          mv "$RUNNER_TEMP/tcos-app-www.tar.gz" .
+          for f in index.html robots.txt css/site.css; do
+            tar -tzf tcos-app-www.tar.gz | grep -qx "$f" \
+              || { echo "payload is missing $f -- refusing to publish"; exit 1; }
+          done
+          ls -l tcos-app-www.tar.gz
+
+      - name: Publish this build's payload
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -eu
+          printf '%s\n' "$SHA" > COMMIT
+          tag="lab-$(printf '%s' "$SHA" | cut -c1-12)"
+          # Draft first with the assets attached: a published release in this
+          # org is immutable and refuses uploads.
+          gh release create "$tag" --repo "$GITHUB_REPOSITORY" --draft \
+            --title "tcos-app lab payload $tag" \
+            --notes "Built by ci from $SHA. The static site for the lab mirror, pulled by lab-pull. Derived state, not a version." \
+            tcos-app-www.tar.gz COMMIT
+          gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease
+          echo "published $tag ($SHA)"
+
+      - name: Keep the last few, delete the rest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          gh release list --repo "$GITHUB_REPOSITORY" --limit 100 --json tagName,createdAt \
+            --jq "[.[] | select(.tagName | startswith(\"lab-\"))]
+                  | sort_by(.createdAt) | reverse | .[${KEEP_RELEASES}:] | .[].tagName" \
+          | while read -r old; do
+              [ -n "$old" ] || continue
+              echo "pruning $old"
+              gh release delete "$old" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag
+            done
