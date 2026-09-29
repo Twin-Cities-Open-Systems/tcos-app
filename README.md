@@ -32,3 +32,10 @@ driven by `release.card.v1.yaml`:
 ## License
 
 GPL-3.0, see `LICENSE`.
+
+## Shared shell
+
+`shell.manifest` lists the CSS and JS every `*.tcos.app` app inherits (theme and
+text-size controls, collapsible and re-arrangeable cards). This repo owns them; a
+child copies them at the same paths and checks for drift in its own CI. The recipe
+is in `CLAUDE.md`, "The shared shell, and how a child app inherits it".

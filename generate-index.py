@@ -40,15 +40,24 @@ def load(path):
 
 def card(a):
     e = html.escape
-    title, summary = e(a["title"]), e(a["summary"])
+    title, summary, name = e(a["title"]), e(a["summary"]), e(a["name"])
     if a["status"] == "live":
-        head = f'<a href="https://{e(a["host"])}/">{title}</a>'
-        meta = f'{e(a["host"])} &middot; {e(str(a["version"]))}'
+        badge = f'<span class="count">{e(str(a["version"]))}</span>'
+        link = f'<a class="open" href="https://{e(a["host"])}/">Open {e(a["host"])}</a>'
     else:
-        head = title
-        meta = f'{e(a["host"])} &middot; coming soon'
-    return (f'    <li class="app {e(a["status"])}"><h2>{head}</h2>\n'
-            f'      <p>{summary}</p>\n      <p class="meta">{meta}</p></li>')
+        badge = '<span class="chip neutral">coming soon</span>'
+        link = f'<span class="meta">{e(a["host"])}</span>'
+    return f"""      <section class="card app {e(a["status"])}" data-tc-arrange-item="app-{name}" data-tc-collapse="app-{name}" aria-labelledby="app-{name}-h">
+        <header>
+          <span class="grip" data-tc-arrange-handle tabindex="0" role="button" aria-label="Reorder {title}" title="Drag to reorder">&#10303;</span>
+          <h2 id="app-{name}-h" data-tc-collapse-toggle>{title}</h2>
+          {badge}
+        </header>
+        <div class="body" data-tc-collapse-body>
+          <p>{summary}</p>
+          <p>{link}</p>
+        </div>
+      </section>"""
 
 
 def render(apps):
@@ -76,19 +85,46 @@ def render(apps):
   <meta name="twitter:title" content="tcos.app">
   <meta name="twitter:description" content="Small, open apps from Twin Cities Open Systems.">
   <meta name="twitter:image" content="https://tcos.app/og.jpg">
+  <link rel="stylesheet" href="/css/shell.css">
   <link rel="stylesheet" href="/css/site.css">
+  <script>(function(){{var d=document.documentElement;
+try{{d.setAttribute("data-fs",localStorage.getItem("tc-fs")||"m");
+var t=localStorage.getItem("tc-theme");if(t&&t!=="auto")d.setAttribute("data-theme",t);}}catch(e){{d.setAttribute("data-fs","m");}}}})();</script>
 </head>
 <body>
-  <main>
+<header class="top">
+  <span class="brand"><a href="/">tcos.app</a></span>
+  <nav aria-label="Main"><a href="/" aria-current="page">Apps</a><a class="ext" href="https://github.com/Twin-Cities-Open-Systems/tcos-app" target="_blank" rel="noopener">Source</a></nav>
+  <div class="fontsize-toggle"><span class="fs-label">Aa</span>
+    <button class="fontsize-btn" data-size="s"  type="button" aria-pressed="false">S</button>
+    <button class="fontsize-btn" data-size="m"  type="button" aria-pressed="true">M</button>
+    <button class="fontsize-btn" data-size="l"  type="button" aria-pressed="false">L</button>
+    <button class="fontsize-btn" data-size="xl" type="button" aria-pressed="false">XL</button>
+    <button class="fontsize-btn" data-size="xxl" type="button" aria-pressed="false">XXL</button>
+  </div>
+  <div class="theme-toggle">
+    <button class="theme-btn" data-theme-choice="light" type="button" aria-pressed="false">Light</button>
+    <button class="theme-btn" data-theme-choice="dark"  type="button" aria-pressed="false">Dark</button>
+    <button class="theme-btn" data-theme-choice="auto"  type="button" aria-pressed="true">Auto</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <div>
     <h1>tcos.app</h1>
-    <p>Small, open apps from Twin Cities Open Systems.</p>
-    <ul class="apps">
+    <p class="lede">Small, open apps from Twin Cities Open Systems.</p>
+  </div>
+  <div class="cards" data-tc-arrange="apps">
 {cards}
-    </ul>
-  </main>
-  <footer>
-    <p><a href="https://github.com/Twin-Cities-Open-Systems/tcos-app">Source</a></p>
-  </footer>
+  </div>
+</main>
+<footer class="wrap">
+  <p><a href="https://github.com/Twin-Cities-Open-Systems/tcos-app">Source</a></p>
+</footer>
+<script src="/js/shell.js"></script>
+<script src="/js/links.js" defer></script>
+<script src="/js/collapse.js" defer></script>
+<script src="/js/arrange.js" defer></script>
 </body>
 </html>
 """

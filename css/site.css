@@ -1,7 +1,5 @@
-/* Placeholder. The color system lands in its own change; this only has to be legible. */
-:root { color-scheme: light dark; }
-body { font: 1rem/1.5 system-ui, sans-serif; margin: 0 auto; max-width: 40rem; padding: 0 1rem; }
-.apps { list-style: none; padding: 0; }
-.app { border: 1px solid; border-radius: .5rem; margin: 1rem 0; padding: .5rem 1rem; }
-.meta { font-size: .875rem; }
-.app.planned { opacity: .8; }
+/* tcos.app's own rules. Everything shared (tokens, themes, cards, controls) is in
+ * shell.css, which children copy; only what is specific to the app index lives here. */
+.app.planned{opacity:.85}
+.app .meta{color:var(--muted);font-size:.875rem}
+.app a.open{font-weight:600}
