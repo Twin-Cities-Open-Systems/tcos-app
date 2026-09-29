@@ -38,6 +38,15 @@ class Shell(unittest.TestCase):
         for url in urls:
             self.assertTrue(url.startswith("/"), url)
 
+    def test_reusable_components_are_in_the_shell(self):
+        css = (ROOT / "css/shell.css").read_text()
+        js = (ROOT / "js/shell.js").read_text()
+        for sel in (".tc-flip{", ".tc-face{", ".tc-front{", ".tc-back{", ".tc-fit ", ".tc-jump{", ".tc-dock{"):
+            self.assertIn(sel, css)
+        for api in ("window.TC.flip", "window.TC.wayback", "data-tc-flipall", "data-tc-to"):
+            self.assertIn(api, js)
+        self.assertIn(".card:has(.tc-dock){overflow:visible}", css)
+
     def test_hee_components_match_their_source(self):
         if not HEE_JS.is_dir():
             self.skipTest("human-execution-engine checkout not present")
