@@ -60,6 +60,22 @@ def render(apps):
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>tcos.app</title>
   <meta name="description" content="Small, open apps from Twin Cities Open Systems.">
+  <link rel="canonical" href="https://tcos.app/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="tcos.app">
+  <meta property="og:title" content="tcos.app">
+  <meta property="og:description" content="Small, open apps from Twin Cities Open Systems.">
+  <meta property="og:url" content="https://tcos.app/">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:image" content="https://tcos.app/og.jpg">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="tcos.app: small, open apps from Twin Cities Open Systems">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="tcos.app">
+  <meta name="twitter:description" content="Small, open apps from Twin Cities Open Systems.">
+  <meta name="twitter:image" content="https://tcos.app/og.jpg">
   <link rel="stylesheet" href="/css/site.css">
 </head>
 <body>
