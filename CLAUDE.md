@@ -44,6 +44,14 @@ are listed once, in `shell.manifest`:
 `hovercard.js` is not in the shell: it calls `api.github.com`, and a public app is
 same-origin only. Edit these here, never in a child.
 
+Readability is a gated property of the shell, not a style preference. `css/shell.css`
+carries the colour tokens (light, system-dark and explicit-dark, designed separately)
+and `tests/test_contrast.py` computes the WCAG ratio of every token pair in both
+themes: body text 7:1, UI text 4.5:1, borders and icons 3:1, cards lifted from the
+page. `python3 tests/test_contrast.py --table` prints the palette. `--edge` is the
+3:1 component boundary; `--rule` is a decorative hairline and must never carry meaning.
+A child app that adds its own tokens adds its own pairs to a test like this one.
+
 A child inherits by **copying** the files at the same relative paths and serving
 them from its own origin (no cross-host `<script src>`; the lab has no egress
 guarantee). The child's `sync-shell.sh` copies the manifest from a tcos-app
