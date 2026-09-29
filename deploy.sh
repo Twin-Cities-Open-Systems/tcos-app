@@ -89,7 +89,14 @@ echo "=== promote: tcos-app worker, src=$SRC_SHA session=$SIG ==="
     --message "hee:$SIG tcos-app src=$SRC_SHA" --tag "${SIG%%_*}" 2>&1 | grep -E 'Success|rror|requires'; exit "${PIPESTATUS[0]}" ) \
   || { echo "❌ CRITICAL promote: wrangler deploy failed -- nothing verified, nothing tagged" >&2; exit 2; }
 echo "=== verify prod ==="
-code="$(curl -s -o /dev/null -w '%{http_code}' "https://$HOST/")"
+# A fresh deploy or a new custom domain takes a few seconds to reach the edge:
+# poll, do not judge the first response.
+code=""
+for i in 1 2 3 4 5 6 7 8 9 10 11 12; do
+  code="$(curl -s -o /dev/null -w '%{http_code}' "https://$HOST/")"
+  [ "$code" = 200 ] && break
+  [ "$i" -lt 12 ] && sleep 10
+done
 body="$(curl -s "https://$HOST/")"
 markers="$(printf '%s\n' "$body" | grep -c -E '^(<<<<<<< |=======$|>>>>>>> )' || true)"
 printf '  /  %s markers=%s\n' "$code" "$markers"
@@ -97,9 +104,10 @@ if [ "$code" != 200 ] || [ "$markers" != 0 ]; then
   echo "❌ CRITICAL promote: prod verification failed -- fix forward or redeploy the previous commit" >&2; exit 2
 fi
 TAG="prod/tcos-app/$STAMP"
+KEYARG=(); [ -n "${HEE_SIGN_KEY:-}" ] && KEYARG=(--key "$HEE_SIGN_KEY")
 hee git tag "$TAG" -m "prod promotion: $HOST
 worker: tcos-app
 source: $SRC_SHA
 session: $SIG
-verified: / 200, no conflict markers" "$SRC_SHA" --yes --push \
-  || { echo "⚠️ WARNING promote: deployed and verified, but the prod tag could not be created/pushed -- hee git tag $TAG -m ... $SRC_SHA --yes --push" >&2; }
+verified: / 200, no conflict markers" "$SRC_SHA" --yes --push "${KEYARG[@]}" \
+  || { echo "⚠️ WARNING promote: deployed and verified, but the prod tag could not be created/pushed -- hee git tag $TAG -m ... $SRC_SHA --yes --push --key <ID>" >&2; }
