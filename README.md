@@ -41,9 +41,17 @@ driven by `release.card.v1.yaml`:
 
 GPL-3.0, see `LICENSE`.
 
-## Shared shell
+## Shared shell: the base of every TCOS web page
 
-`shell.manifest` lists the CSS and JS every `*.tcos.app` app inherits (theme and
-text-size controls, collapsible and re-arrangeable cards). This repo owns them; a
+tcos-app is the org's primary home for web pages: the shell, the widgets and the
+tools every TCOS page shares live here, and a UI improvement made for one site
+lands here first. The children are the `*.tcos.app` apps, view.lab, the tcos.us
+site and its lab mirror, and the media hubs (the table is in `CLAUDE.md`).
+
+`shell.manifest` lists the CSS and JS a child inherits: the theme selector (auto,
+light, dark and four named themes, every color pair measured to WCAG), the
+text-size control, the small-screen menu, collapsible and re-arrangeable cards,
+flip cards, the way-back pill that follows the reader down a long page, and the
+dock. This repo owns them; a
 child copies them at the same paths and checks for drift in its own CI. The recipe
 is in `CLAUDE.md`, "The shared shell, and how a child app inherits it".
