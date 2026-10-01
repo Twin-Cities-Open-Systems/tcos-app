@@ -77,7 +77,7 @@ needs behavior, a small API in `shell.js` (no new files, so no payload list in a
 | component | markup and API |
 |---|---|
 | flip card | `.tc-flip[data-flipped]` > `.tc-flip-in` > `.tc-face.tc-front` + `.tc-face.tc-back`; `TC.flip.set/all`; `[data-tc-flip]` buttons and `[data-tc-flipall="back\|front"][data-target]` work with no page script; `.tc-fit` sizes a card to its visible face |
-| way back | `nav.tc-jump` with `[data-tc-to=group\|panel\|top]` buttons; `TC.wayback.init(nav, {scope, heading, groups, strip})` |
+| way back | `nav.tc-jump` with `[data-tc-to=group\|panel\|top]` buttons; `TC.wayback.init(nav, {scope, heading, groups, strip})`. Init adds a `[data-tc-to=here]` anchor (no markup): its href links the section being read, a plain click copies it and sets the address bar without scrolling; headings without an id get one from their text, in document order, at init |
 | dock | `.tc-dock` (+ `.tc-dock-n`): a bar that rides the bottom edge while its section is on screen; the pill lifts above it |
 
 Print is paper by default (white, black ink). A page whose own export promises
