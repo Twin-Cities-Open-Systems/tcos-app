@@ -38,9 +38,30 @@ page, so CI is offline; a newer tag only warns unless `TCOS_APP_STRICT_VERSIONS=
 runs against local bare repos. A regenerate that cannot read a tag refuses rather
 than guessing.
 
-## The shared shell, and how a child app inherits it
+## tcos-app is the home of every TCOS web page
 
-`tcos-app` owns the look and the behavior every `*.tcos.app` app shares. The files
+Operator, 2026-10-01: tcos-app is the org's **primary go-to for all things web
+page**. It holds, and will keep gaining, the widgets, tools and resources every
+page shares. A UI/UX improvement made for one site lands **here first**, then
+reaches the others by sync; it is never re-derived in a child. That covers more
+than `*.tcos.app`:
+
+| child | served at | repo | how it takes the shell |
+|---|---|---|---|
+| ham | `ham.tcos.app` | `ham-tcos-app` | `sync-shell.sh`, committed copy, CI `--check` |
+| tcos.app itself | `tcos.app` | this repo | owner |
+| view.lab | `view.lab.tcos.us` | `fleet-ops` (`view/`) | `view/build.sh` copies `css/shell.css` + `js/shell.js` at build time; `view.css` imports it |
+| mf.lab, store.lab | `mf.lab.tcos.us`, `store.lab.tcos.us` | `fleet-ops` (`tools/*/web`) | their `build.sh` copies `view.css` + `shell.css` |
+| tcos.us and its lab mirror | `tcos.us`, `lab.tcos.us` | `tcos-www` | `sync-shell.sh` (same as ham) |
+| media hubs | `media.tcos.us`, `media.lab.tcos.us`, `<who>.media...` | `resume` | `sync-shell.sh` (same as ham) |
+
+A new shared piece goes here when a second page could use it. A child that needs
+the shell to behave differently asks for an opt-in attribute here (as
+`data-tc-print="theme"` below) rather than overriding a token in its own CSS.
+
+## The shared shell, and how a child inherits it
+
+`tcos-app` owns the look and the behavior every TCOS web page shares. The files
 are listed once, in `shell.manifest`:
 
 | file | what it is |
@@ -58,6 +79,10 @@ needs behavior, a small API in `shell.js` (no new files, so no payload list in a
 | flip card | `.tc-flip[data-flipped]` > `.tc-flip-in` > `.tc-face.tc-front` + `.tc-face.tc-back`; `TC.flip.set/all`; `[data-tc-flip]` buttons and `[data-tc-flipall="back\|front"][data-target]` work with no page script; `.tc-fit` sizes a card to its visible face |
 | way back | `nav.tc-jump` with `[data-tc-to=group\|panel\|top]` buttons; `TC.wayback.init(nav, {scope, heading, groups, strip})` |
 | dock | `.tc-dock` (+ `.tc-dock-n`): a bar that rides the bottom edge while its section is on screen; the pill lifts above it |
+
+Print is paper by default (white, black ink). A page whose own export promises
+the screen's look sets `<html data-tc-print="theme">` and prints in the reader's
+theme, dark included; view.lab's PDF button does.
 
 `hovercard.js` is not in the shell: it calls `api.github.com`, and a public app is
 same-origin only. Edit these here, never in a child.
