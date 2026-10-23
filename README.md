@@ -31,6 +31,11 @@ driven by `release.card.v1.yaml`:
     hee release -cut -yes  # release commit and PR; merging it is the sign-off
     hee release -promote -yes  # deploy tcos.app from the release commit, signed tag
 
+**A new public name:** verify a name that is new to prod with `dig @1.1.1.1 <name>`
+or `curl --resolve <name>:443:<edge-ip>` rather than through the lab resolver. If
+the lab resolver already answered NXDOMAIN, it holds that answer for up to 30
+minutes; `rndc flushname <name>` on ns1 clears it.
+
 ## Add an app
 
 1. Create the app's repo (`<name>-tcos-app`), releasing through the same card shape.
