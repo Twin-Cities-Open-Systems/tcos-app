@@ -101,6 +101,7 @@ body="$(curl -s "https://$HOST/")"
 markers="$(printf '%s\n' "$body" | grep -c -E '^(<<<<<<< |=======$|>>>>>>> )' || true)"
 printf '  /  %s markers=%s\n' "$code" "$markers"
 if [ "$code" != 200 ] || [ "$markers" != 0 ]; then
+  [ "$code" != 200 ] && echo "⚠️  if $HOST is new to prod, the lab resolver may be holding a cached NXDOMAIN -- check with dig @1.1.1.1 $HOST or curl --resolve $HOST:443:<edge-ip>" >&2
   echo "❌ CRITICAL promote: prod verification failed -- fix forward or redeploy the previous commit" >&2; exit 2
 fi
 TAG="prod/tcos-app/$STAMP"
